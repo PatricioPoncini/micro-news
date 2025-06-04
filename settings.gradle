@@ -1,0 +1,4 @@
+rootProject.name = 'micro-news'
+
+include 'news-api'
+include 'worker-service'
