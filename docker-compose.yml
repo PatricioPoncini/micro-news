@@ -1,0 +1,68 @@
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - 22181:2181
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    ports:
+      - 29092:29092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CREATE_TOPICS: "news:1:1" # 1 partición, 1 réplica
+      KAFKA_OFFSETS_RETENTION_MINUTES: 60
+
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - 6379:6379
+    environment:
+      REDIS_PASSWORD: my_secret_redis_password
+
+  news-api:
+    build:
+      context: ./news-api
+      dockerfile: Dockerfile
+    image: news-api:latest
+    container_name: news-api
+    depends_on:
+      - kafka
+      - redis
+    environment:
+      KAFKA_SERVER: kafka:29092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: my_secret_redis_password
+    ports:
+      - "8080:8080"
+
+  worker-service:
+    build:
+      context: ./worker-service
+      dockerfile: Dockerfile
+    image: worker-service:latest
+    container_name: worker-service
+    depends_on:
+      - kafka
+      - redis
+    environment:
+      KAFKA_SERVER: kafka:29092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: my_secret_redis_password
+      MEDIASTACK_URI: http://api.mediastack.com/v1/news
+      MEDIASTACK_API_KEY: 8084c23434024f5ea6f93c55ee5ec200
+    ports:
+      - "8081:8081"

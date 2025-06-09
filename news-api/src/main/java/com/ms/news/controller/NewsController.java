@@ -21,7 +21,7 @@ import reactor.core.publisher.Mono;
 public class NewsController {
   private final NewsService newsService;
 
-  @GetMapping("/{}")
+  @GetMapping
   public Mono<ResponseEntity<DataResponse<Object>>> getNews(
       @NotBlank(message = DATE_NOT_BLANK_MESSAGE)
           @Pattern(regexp = DATE_FORMAT, message = DATE_PATTERN_MESSAGE)
@@ -32,16 +32,18 @@ public class NewsController {
         .flatMap(
             data ->
                 Mono.just(
-                        ResponseEntity.status(HttpStatus.OK)
-                            .body(DataResponse.builder().data(data).build()))
-                    .switchIfEmpty(
-                        Mono.defer(
-                            () ->
-                                Mono.just(
-                                    ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                        .body(
-                                            DataResponse.builder()
-                                                .message(DATA_NOT_FOUND_MESSAGE)
-                                                .build())))));
+                    ResponseEntity.status(HttpStatus.OK)
+                        .body(
+                            DataResponse.builder().message(DATA_FOUND_MESSAGE).data(data).build())))
+        .switchIfEmpty(
+            Mono.defer(
+                () ->
+                    Mono.just(
+                        ResponseEntity.status(HttpStatus.NOT_FOUND)
+                            .body(
+                                DataResponse.builder()
+                                    .message(DATA_NOT_FOUND_MESSAGE)
+                                    .data(null)
+                                    .build()))));
   }
 }
